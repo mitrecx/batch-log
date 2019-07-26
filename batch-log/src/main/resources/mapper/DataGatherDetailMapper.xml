@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.mitrecx.repository.DataGatherDetailMapper">
+    <insert id="insertDataGatherDetailMapper" parameterType="java.util.Map">
+        insert into T_DATA_GATHER_DETAIL
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                ID,
+            </if>
+            <if test="processBatch != null">
+                PROCESS_BATCH,
+            </if>
+            <if test="filename != null">
+                FILENAME,
+            </if>
+            <if test="dataSource != null">
+                DATA_SOURCE,
+            </if>
+            <if test="bizType != null">
+                BIZ_TYPE,
+            </if>
+            <if test="bizDate != null">
+                BIZ_DATE,
+            </if>
+            <if test="mappingId != null">
+                MAPPING_ID,
+            </if>
+            <if test="mappingName != null">
+                MAPPING_NAME,
+            </if>
+            <if test="processDate != null">
+                PROCESS_DATE,
+            </if>
+            <if test="startTime != null">
+                START_TIME,
+            </if>
+            <if test="endTime != null">
+                END_TIME,
+            </if>
+            <if test="processResult != null">
+                PROCESS_RESULT,
+            </if>
+            <if test="resultRemarks != null">
+                RESULT_REMARKS,
+            </if>
+            <if test="externalId != null">
+                EXTERNAL_ID,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="processBatch != null">
+                #{processBatch,jdbcType=VARCHAR},
+            </if>
+            <if test="filename != null">
+                #{filename,jdbcType=VARCHAR},
+            </if>
+            <if test="dataSource != null">
+                #{dataSource,jdbcType=VARCHAR},
+            </if>
+            <if test="bizType != null">
+                #{bizType,jdbcType=VARCHAR},
+            </if>
+            <if test="bizDate != null">
+                #{bizDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="mappingId != null">
+                #{mappingId,jdbcType=VARCHAR},
+            </if>
+            <if test="mappingName != null">
+                #{mappingName,jdbcType=VARCHAR},
+            </if>
+            <if test="processDate != null">
+                #{processDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="startTime != null">
+                #{startTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="endTime != null">
+                #{endTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="processResult != null">
+                #{processResult,jdbcType=VARCHAR},
+            </if>
+            <if test="resultRemarks != null">
+                #{resultRemarks,jdbcType=VARCHAR},
+            </if>
+            <if test="externalId != null">
+                #{externalId,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+
+    <select id="getFileMappingDetails" parameterType="java.lang.String" resultType="cn.mitrecx.domain.entity.FileMappingDetailsEntity">
+        select
+        t.mapping_id as "mappingId",
+        t.table_column_name as "tableColumnName",
+        t.file_column_name as "fileColumnName",
+        t.file_column_exp as "fileColumnExp",
+        t.delete_mark as "deleteMark"
+        from test_file_mapping_details t
+        where t.mapping_id=#{mappingId, jdbcType=VARCHAR}
+    </select>
+
+    <select id="getFileMapping" resultType="cn.mitrecx.domain.entity.FileMappingEntity">
+        select
+        t.mapping_id as "mappingId",
+        t.mapping_name as "mappingName",
+        t.file_type as "fileType",
+        t.encoding_type as "encodingType",
+        t.biz_type as "bizType",
+        t.mapping_table_name as "mappingTableName",
+        t.exclude_head as "excludeHead",
+        t.exclude_tail as "excludeTail",
+        t.parse_type as "parseType",
+        t.parse_rule as "parseRule",
+        t.header as "header",
+        t.trailer as "trailer"
+        from test_file_mapping t 
+        where t.mapping_id= #{mappingId}
+    </select>
+
+    <select id="getFileMappingHeaderTailer" parameterType="java.lang.String" resultType="java.util.Map">
+        select
+        t.header as "header",
+        t.trailer as "trailer"
+        from test_file_mapping t
+        where t.mapping_id=#{mappingId, jdbcType=VARCHAR}
+    </select>
+
+    <insert id="insertTargetTable">
+        insert into ${tableName1}
+        <foreach index="key" item="value" collection="mapField" separator="," open="(" close=")">
+            <if test="key !=null ">
+                ${key}
+            </if>
+        </foreach>
+        values
+        <foreach index="key" item="value" collection="mapField" separator="," open="(" close=")">
+            <if test="key !=null ">
+                #{value}
+            </if>
+        </foreach>
+
+    </insert>
+
+    <insert id="insertTargetTable2">
+        insert all
+        <foreach collection="list" item="mapField">
+            into ${tableName1}
+            <foreach index="key" item="value" collection="mapField" separator="," open="(" close=")">
+                <if test="key !=null and value !=null" >
+                    ${key}
+                </if>
+            </foreach>
+            values
+            <foreach index="key" item="value" collection="mapField" separator="," open="(" close=")">
+                <if test="key !=null and value !=null" >
+                    #{value}
+                </if>
+            </foreach>
+
+        </foreach>
+        select 1 from dual
+    </insert>
+
+    <delete id="deleteTargetTable">
+        delete from ${tableName}
+    </delete>
+
+    <delete id="deleteTargetTableByConfig">
+        delete from ${tableName}
+        where
+        <foreach collection="tableDeleteMap" index="key" item="values">
+            ${key} in
+            <foreach collection="values" item="value" open="(" close=")" separator=",">
+                #{value}
+            </foreach>
+        </foreach>
+    </delete>
+
+    <delete id="deleteTargetTableByConfigMulti">
+        delete from ${tableName}
+        where
+        <foreach collection="list" item="map" separator=" or ">
+            <foreach collection="map" index="key" item="value" separator=", " open="(" close=")">
+                ${key}
+            </foreach>
+            in
+            <foreach collection="map" index="key" item="value" separator=", " open="(select " close=" from dual )">
+                #{value}
+            </foreach>
+        </foreach>
+    </delete>
+</mapper>
