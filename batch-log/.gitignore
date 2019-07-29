@@ -17,6 +17,10 @@
 !yusp-commons*.jar
 
 # eclipse 配置
+/.settings
 *.pref
 
+
 /target
+
+*.yml
