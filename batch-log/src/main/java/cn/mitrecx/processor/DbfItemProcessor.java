@@ -43,8 +43,8 @@ public class DbfItemProcessor implements ItemProcessor<Map<String, String>, Map<
     @Override
     public Map<String, Object> process(Map<String, String> map) throws Exception {
         List<FileMappingDetailsEntity> fileMappingDetails = dataGatherDetailMapper.getFileMappingDetails(mappingId);
-        map.put("fileDate", DateUtil.format(new Date(), DateUtil.PATTERN_DATETIME));
-        map.put("fileName", fileName);
+        map.put("FILEDATE", DateUtil.format(new Date(), DateUtil.PATTERN_DATETIME));
+        map.put("FILENAME", fileName);
         
         return convert(fileMappingDetails, map);
     }
@@ -92,8 +92,8 @@ public class DbfItemProcessor implements ItemProcessor<Map<String, String>, Map<
             }
             return null;
         }
-        if (exp.replaceAll("\\s", "").toLowerCase().equals("row num".replaceAll("\\s", "").toLowerCase())) { // TODO
-            return Integer.parseInt(fileColumnMap.get("rowNum"));
+        if (exp.replaceAll("\\s", "").toLowerCase().equals("rownum")) { // TODO
+            return Integer.parseInt(fileColumnMap.get("ROWNUM"));
         }
         if (exp.replaceAll("\\s", "").toLowerCase().equals("unique index".replaceAll("\\s", "").toLowerCase())) { // TODO
             // externalId
@@ -111,7 +111,8 @@ public class DbfItemProcessor implements ItemProcessor<Map<String, String>, Map<
             }
             int size = varList.size();
             for (int i = 0; i < size; i++) {
-                exp = exp.replace(varList.get(i), "\"" + fileColumnMap.get(varList.get(i).substring(2, varList.get(i).length() - 1)) + "\"");
+                //System.out.println(varList.get(i).substring(2, varList.get(i).length() - 1));
+                exp = exp.replace(varList.get(i), "\"" + fileColumnMap.get(varList.get(i).substring(2, varList.get(i).length() - 1).toUpperCase()) + "\"");
             }
             //System.out.println(exp);
             ExpressRunner runner = new ExpressRunner();

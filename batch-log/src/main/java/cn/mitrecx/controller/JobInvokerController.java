@@ -64,6 +64,8 @@ public class JobInvokerController {
     Job dbfCommonJob;
     @Autowired
     Job XMLCommonJob;
+    @Autowired
+    Job excelSheetCommonJob;
 
     // 每20秒执行一次
 //    @Scheduled(cron = "*/20 * *  * * * ")
@@ -100,6 +102,8 @@ public class JobInvokerController {
                 JobExecution jobExecution = myJobLauncher().run(commonJob, jobParameters);
             }else if("3".equals(fileType)) { // xml 文件
                 myJobLauncher().run(XMLCommonJob, jobParameters);
+            }else if("4".equals(fileType)) { // excel 文件
+                myJobLauncher().run(excelSheetCommonJob, jobParameters);
             }
         }
         // Thread.sleep(8000);

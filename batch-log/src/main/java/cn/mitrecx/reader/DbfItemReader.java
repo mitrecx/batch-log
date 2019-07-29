@@ -36,7 +36,7 @@ public class DbfItemReader<T> implements ItemReader<T> {
                 readResult.put(headFields.get(i), rowValues[i].toString().trim());
             }
 
-            readResult.put("rowNum", lineCount.addAndGet(1) + "");
+            readResult.put("ROWNUM", lineCount.addAndGet(1) + "");
             return (T)readResult;
         }
         return null;

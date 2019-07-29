@@ -1,9 +1,17 @@
 package cn.mitrecx.reader;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.LineNumberReader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.batch.item.ItemReader;
@@ -13,6 +21,7 @@ import org.springframework.batch.item.UnexpectedInputException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import cn.mitrecx.domain.entity.FileMappingEntity;
+import cn.mitrecx.processor.CommonItemProcessor;
 import cn.mitrecx.repository.DataGatherDetailMapper;
 
 /**
@@ -24,6 +33,8 @@ public class OriginCommonItemReader<T> implements ItemReader<T> {
     @Autowired
     DataGatherDetailMapper dataGatherDetailMapper;
     CommonItemReader<Map<String, String>> commonItemReader;
+    CommonItemProcessor commonItemProcessor;
+    
     private FileMappingEntity fileMappingEntity;
     private String mappingId;
     private String fileName;
@@ -33,7 +44,9 @@ public class OriginCommonItemReader<T> implements ItemReader<T> {
 
     @Override
     public T read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
+        
         this.fileMappingEntity = dataGatherDetailMapper.getFileMapping(mappingId);
+        test();
         BigDecimal excludeHead = fileMappingEntity.getExcludeHead();
         BigDecimal excludeTail = fileMappingEntity.getExcludeTail();
         if (excludeHead != null) {
@@ -70,6 +83,62 @@ public class OriginCommonItemReader<T> implements ItemReader<T> {
         return null;
     }
 
+    void test() {
+        //String separator = dataGatherDetailMapper.getParseRule(mappingId);
+        // Map<String, String> headerTrailer = dataGatherDetailMapper.getFileMappingHeaderTailer(mappingId);
+        String head = fileMappingEntity.getHeader();
+        String tail = fileMappingEntity.getTrailer();
+        String encoding = fileMappingEntity.getEncodingType();
+        String separator = fileMappingEntity.getParseRule();
+        if ((head != null && head.equals("Y")) || (tail != null && tail.equals("Y"))) {
+//        if (headerTrailer != null && ((headerTrailer.get("trailer") != null && headerTrailer.get("trailer").equals("Y")) || (headerTrailer.get("header") != null && headerTrailer.get("header").equals("Y")))) {
+            InputStream is;
+            try {
+                is = new FileInputStream(new File(fileName));
+
+                InputStreamReader isr = new InputStreamReader(is, encoding);
+                BufferedReader br = new BufferedReader(isr);
+                String firstLine = "";
+                String lastLine = "";
+                int lineCnt = 1;
+                String line = null;
+                while ((line = br.readLine()) != null) {
+                    if (lineCnt == 1) {
+                        firstLine = line;
+                    }
+                    lineCnt++;
+                    lastLine = line;
+                }
+                // 特殊行--首行
+                if (head != null && head.equals("Y")) {
+                    String[] arrayfirst = firstLine.split(separator);
+                    int length = arrayfirst.length;
+                    Map<String, String> readfirst = new HashMap<String, String>();
+                    for (int i = 0; i < length; i++) {
+                        readfirst.put("column" + i, arrayfirst[i].trim());
+                    }
+                    commonItemProcessor.setHeader(readfirst);
+                }
+                // 特殊行--尾行
+                if (tail != null && tail.equals("Y")) {
+                    String[] arrayLast = lastLine.split(separator);
+                    int length = arrayLast.length;
+                    Map<String, String> readLast = new HashMap<String, String>();
+                    for (int i = 0; i < length; i++) {
+                        readLast.put("column" + i, arrayLast[i].trim());
+                    }
+                    commonItemProcessor.setTailer(readLast);
+                }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public CommonItemReader<Map<String, String>> getCommonItemReader() {
         return commonItemReader;
     }
@@ -92,6 +161,14 @@ public class OriginCommonItemReader<T> implements ItemReader<T> {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    public CommonItemProcessor getCommonItemProcessor() {
+        return commonItemProcessor;
+    }
+
+    public void setCommonItemProcessor(CommonItemProcessor commonItemProcessor) {
+        this.commonItemProcessor = commonItemProcessor;
     }
 
 }

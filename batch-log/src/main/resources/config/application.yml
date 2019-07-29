@@ -7,9 +7,9 @@ spring:
       time-zone: GMT+8
    datasource:
       type: com.zaxxer.hikari.HikariDataSource
-      url: jdbc:oracle:thin:@47.96.111.222:1521:S460
-      username: test
-      password: test
+      url: jdbc:oracle:thin:@47.96.118.135:1521:S460
+      username: faext
+      password: faext
       hikari:
          data-source-properties:
             cachePrepStmts: true

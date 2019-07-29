@@ -15,10 +15,5 @@ public class OriginLogItemWriter<T> implements ItemWriter<T> {
         
     }
 
-    public static void main(String[] args) {
-        String s="中债平台估值20180330.dbf";
-        String after=s.replace("中债平台估值", "INTERBANK");
-        System.out.println(s);
-        System.out.println(after);
-    }
+  
 }

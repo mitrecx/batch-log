@@ -31,8 +31,8 @@ public class CommonItemProcessor implements ItemProcessor<Map<String, String>, M
     private String fileName;
     private String mappingId;
 
-    public static Map<String, String> header;
-    public static Map<String, String> tailer;
+    public Map<String, String> header;
+    public Map<String, String> tailer;
 
     public CommonItemProcessor() {
     }
@@ -204,9 +204,23 @@ public class CommonItemProcessor implements ItemProcessor<Map<String, String>, M
         return exp;
     }
 
+    public Map<String, String> getHeader() {
+        return header;
+    }
+
+    public void setHeader(Map<String, String> header) {
+        this.header = header;
+    }
+
+    public Map<String, String> getTailer() {
+        return tailer;
+    }
+
+    public void setTailer(Map<String, String> tailer) {
+        this.tailer = tailer;
+    }
+
     public static void main(String[] args) {
-        if("MD001".equals("1")) {System.out.println("000");}
-        else {System.out.println(222);}
 
     }
 

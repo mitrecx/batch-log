@@ -4,12 +4,19 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.dom4j.Document;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
@@ -35,11 +42,13 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 
+import cn.com.yusys.yusp.commons.exception.YuspRuntimeException;
 import cn.mitrecx.domain.entity.FileMappingEntity;
 import cn.mitrecx.processor.CommonItemProcessor;
 import cn.mitrecx.processor.DbfItemProcessor;
 import cn.mitrecx.reader.CommonItemReader;
 import cn.mitrecx.reader.DbfItemReader;
+import cn.mitrecx.reader.ExcelSheetItemReader;
 import cn.mitrecx.reader.OriginCommonItemReader;
 import cn.mitrecx.reader.OriginDbfItemReader;
 import cn.mitrecx.reader.XMLItemReader;
@@ -85,20 +94,21 @@ public class ProcessCommonConfiguration {
         itemReader.setMappingId(mappingId);
         return itemReader;
     }
+
     @Bean
     @JobScope
     public XMLItemReader<Map<String, String>> xmlItemReader(@Value("#{JobParameters['path']}") String path, @Value("#{JobParameters['fileName']}") String fileName, @Value("#{JobParameters['mappingId']}") String mappingId) {
         XMLItemReader<Map<String, String>> itemReader = new XMLItemReader<Map<String, String>>();
         SAXReader reader = new SAXReader();
-        FileMappingEntity fileMappingEntity =dataGatherDetailMapper.getFileMapping(mappingId);
-        String parentElementName= fileMappingEntity.getParseRule();
+        FileMappingEntity fileMappingEntity = dataGatherDetailMapper.getFileMapping(mappingId);
+        String parentElementName = fileMappingEntity.getParseRule();
         File file = new File(path + "\\" + fileName);
         try {
             Document document = reader.read(file);
             Element root = document.getRootElement();
             Iterator iterator = root.elementIterator(parentElementName);
             itemReader.setIterator(iterator);
-        }catch (Exception e) {
+        } catch (Exception e) {
             // TODO: handle exception
         }
         return itemReader;
@@ -126,6 +136,54 @@ public class ProcessCommonConfiguration {
     }
 
     @Bean
+    @JobScope
+    public ExcelSheetItemReader excelSheetItemReader(@Value("#{JobParameters['path']}") String path, @Value("#{JobParameters['fileName']}") String fileName, @Value("#{JobParameters['mappingId']}") String mappingId) {
+        ExcelSheetItemReader itemReader = new ExcelSheetItemReader();
+        FileMappingEntity fileMappingEntity = dataGatherDetailMapper.getFileMapping(mappingId);
+        Workbook wb = null;
+        Sheet sheet = null;
+        try {
+            File file = new File(path + "\\" + fileName);
+            InputStream fis = new FileInputStream(file);
+            if (StringUtils.endsWithIgnoreCase(file.getName(), ".xls")) {
+                wb = new HSSFWorkbook(fis);
+            } else if (StringUtils.endsWithIgnoreCase(file.getName(), ".xlsx")) {
+                wb = new XSSFWorkbook(fis);
+            } else {
+                throw new YuspRuntimeException("未实现扩展名！", "31030010");
+            }
+            
+            String parseType = fileMappingEntity.getParseType();
+            String parseRule = fileMappingEntity.getParseRule();
+            if (StringUtils.equals("5", parseType)) {
+                sheet = wb.getSheet(parseRule);
+            } else if (StringUtils.equals("6", parseType)) {
+                sheet = wb.getSheetAt(Integer.parseInt(parseRule));
+            } else {
+                throw new YuspRuntimeException("未实现解析类型！", "31030008");
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        itemReader.setSheet(sheet);
+        BigDecimal start=fileMappingEntity.getExcludeHead();
+        int startLine=0;
+        if(start!=null) {
+            startLine=start.intValue();
+        }
+        BigDecimal end=fileMappingEntity.getExcludeTail();
+        int endLine=Integer.MAX_VALUE;
+        if(end!=null) {
+            endLine=end.intValue();
+        }
+        itemReader.setStartLine(startLine);
+        itemReader.setEndLine(endLine);
+        return itemReader;
+    }
+
+    @Bean
     @StepScope
     public OriginDbfItemReader<Map<String, String>> originDbfItemReader(@Value("#{JobParameters['path']}") String path, @Value("#{JobParameters['fileName']}") String fileName, @Value("#{JobParameters['mappingId']}") String mappingId, DbfItemReader<Map<String, String>> dbfItemReader) {
         // System.out.println("origin--DBF---ItemReader");
@@ -142,16 +200,17 @@ public class ProcessCommonConfiguration {
      */
     @Bean
     @StepScope
-    public OriginCommonItemReader<Map<String, String>> originCommonItemReader(@Value("#{JobParameters['path']}") String path, @Value("#{JobParameters['fileName']}") String fileName, @Value("#{JobParameters['mappingId']}") String mappingId,CommonItemReader<Map<String, String>> commonItemReader) {
+    public OriginCommonItemReader<Map<String, String>> originCommonItemReader(@Value("#{JobParameters['path']}") String path, @Value("#{JobParameters['fileName']}") String fileName, @Value("#{JobParameters['mappingId']}") String mappingId, CommonItemReader<Map<String, String>> commonItemReader, CommonItemProcessor commonItemProcessor) {
         OriginCommonItemReader<Map<String, String>> itemReader = new OriginCommonItemReader<Map<String, String>>();
         itemReader.setCommonItemReader(commonItemReader);
+        itemReader.setCommonItemProcessor(commonItemProcessor);
         itemReader.setMappingId(mappingId);
         itemReader.setFileName(path + "\\" + fileName);
         return itemReader;
     }
 
     @Bean
-    @StepScope
+    @JobScope
     public CommonItemProcessor commonItemProcessor(@Value("#{JobParameters['fileName']}") String fileName, @Value("#{JobParameters['mappingId']}") String mappingId) {
         return new CommonItemProcessor(fileName, mappingId);
     }
@@ -203,6 +262,7 @@ public class ProcessCommonConfiguration {
         return taskletStep;
 //        return simpleStepBuilder.taskExecutor(taskExecutor).throttleLimit(10).build();
     }
+
     @Bean
     @JobScope
     public Step xmlStep1(XMLItemReader<Map<String, String>> xmlItemReader, CommonItemProcessor commonItemProcessor, CommonItemWriter<Map<String, Object>> commonItemWriter) {
@@ -232,6 +292,7 @@ public class ProcessCommonConfiguration {
         Job job = JobFlowBuilder.build();
         return job;
     }
+
     @Bean
     @Scope("prototype")
     public Job XMLCommonJob(DbfListener listener, Step xmlStep1) {
@@ -240,7 +301,7 @@ public class ProcessCommonConfiguration {
         JobBuilder jobBuilder = jobBuilderFactory.get("XMLJob").validator(new DefaultJobParametersValidator(requiredKeys, optionalKeys));
         jobBuilder = jobBuilder.incrementer(new RunIdIncrementer());
         jobBuilder = jobBuilder.listener(listener);
-        
+
         SimpleJobBuilder JobFlowBuilder = jobBuilder.start(xmlStep1);
         Job job = JobFlowBuilder.build();
         return job;
@@ -279,6 +340,22 @@ public class ProcessCommonConfiguration {
     }
 
     @Bean
+    @JobScope
+    public Step excelSheetStep1(ExcelSheetItemReader excelSheetItemReader, CommonItemProcessor commonItemProcessor, CommonItemWriter<Map<String, Object>> commonItemWriter) {
+        StepBuilder stepBuilder = stepBuilderFactory.get("dbfStep2");
+        SimpleStepBuilder<Map<String, String>, Map<String, Object>> simpleStepBuilder = stepBuilder.<Map<String, String>, Map<String, Object>>chunk(300);
+        // ItemReader
+        simpleStepBuilder = simpleStepBuilder.reader(excelSheetItemReader);
+        // ItemProcessor
+        simpleStepBuilder = simpleStepBuilder.processor(commonItemProcessor);
+        // ItemWriter
+        simpleStepBuilder = simpleStepBuilder.writer(commonItemWriter);
+        TaskletStep taskletStep = simpleStepBuilder.build();
+        return taskletStep;
+        // return simpleStepBuilder.taskExecutor(taskExecutor).throttleLimit(10).build();
+    }
+
+    @Bean
     @Scope("prototype")
     public Job dbfCommonJob(DbfListener dbfListener, Step dbfStep1, Step dbfStep2) {
         String[] requiredKeys = { "mappingId" };
@@ -288,6 +365,20 @@ public class ProcessCommonConfiguration {
         jobBuilder = jobBuilder.listener(dbfListener);
 
         SimpleJobBuilder JobFlowBuilder = jobBuilder.start(dbfStep1).next(dbfStep2);
+        Job job = JobFlowBuilder.build();
+        return job;
+    }
+
+    @Bean
+    @Scope("prototype")
+    public Job excelSheetCommonJob(DbfListener dbfListener, Step excelSheetStep1) {
+        String[] requiredKeys = { "mappingId" };
+        String[] optionalKeys = new String[0];
+        JobBuilder jobBuilder = jobBuilderFactory.get("dbfCommonJob").validator(new DefaultJobParametersValidator(requiredKeys, optionalKeys));
+        jobBuilder = jobBuilder.incrementer(new RunIdIncrementer());
+        jobBuilder = jobBuilder.listener(dbfListener);
+
+        SimpleJobBuilder JobFlowBuilder = jobBuilder.start(excelSheetStep1);
         Job job = JobFlowBuilder.build();
         return job;
     }

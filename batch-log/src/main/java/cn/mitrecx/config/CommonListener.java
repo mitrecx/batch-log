@@ -90,54 +90,7 @@ public class CommonListener extends JobExecutionListenerSupport {
 //            // TODO: handle exception
 //        }
 
-        String separator = dataGatherDetailMapper.getParseRule(mappingId);
-        Map<String, String> headerTrailer = dataGatherDetailMapper.getFileMappingHeaderTailer(mappingId);
-        if (headerTrailer != null && ((headerTrailer.get("trailer") != null && headerTrailer.get("trailer").equals("Y")) || (headerTrailer.get("header") != null && headerTrailer.get("header").equals("Y")))) {
-            InputStream is;
-            try {
-                is = new FileInputStream(new File(path + filename));
-
-                InputStreamReader isr = new InputStreamReader(is, encoding);
-                BufferedReader br = new BufferedReader(isr);
-                String firstLine = "";
-                String lastLine = "";
-                int lineCnt = 1;
-                String line = null;
-                while ((line = br.readLine()) != null) {
-                    if (lineCnt == 1) {
-                        firstLine = line;
-                    }
-                    lineCnt++;
-                    lastLine = line;
-                }
-                // 特殊行--首行
-                if (headerTrailer.get("header") != null && headerTrailer.get("header").equals("Y")) {
-                    String[] arrayfirst = firstLine.split(separator);
-                    int length = arrayfirst.length;
-                    Map<String, String> readfirst = new HashMap<String, String>();
-                    for (int i = 0; i < length; i++) {
-                        readfirst.put("column" + i, arrayfirst[i].trim());
-                    }
-                    CommonItemProcessor.header = readfirst;
-                }
-                // 特殊行--尾行
-                if (headerTrailer.get("trailer") != null && headerTrailer.get("trailer").equals("Y")) {
-                    String[] arrayLast = lastLine.split(separator);
-                    int length = arrayLast.length;
-                    Map<String, String> readLast = new HashMap<String, String>();
-                    for (int i = 0; i < length; i++) {
-                        readLast.put("column" + i, arrayLast[i].trim());
-                    }
-                    CommonItemProcessor.tailer = readLast;
-                }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        
     }
 
     @Override

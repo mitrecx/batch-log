@@ -49,8 +49,8 @@ public class OriginDbfItemReader<T> implements ItemReader<T> {
             int fieldsCount = reader.getFieldCount();
             for (int i = 0; i < fieldsCount; i++) {
                 DBFField field = reader.getField(i);
-                // CSRCC开头的文件字段名有的包含()%./等特色字符, 统一转成_
                 String name = field.getName().trim().toUpperCase();
+                // CSRCC开头的文件字段名有的包含()%./等特色字符, 统一转成_
                 //name = name.replaceAll("\\(|\\)|\\.|%|/", "_");
                 columnNameList.add(name);
             }
